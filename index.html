@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MBTI 팀 빌더 - 분임 구성</title>
+    <title>MBTI 팀 빌더 - 상세 분석 버전</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         .team-card {
-            transition: all 0.3s ease;
-            min-height: 250px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            min-height: 280px;
         }
         .team-card.drag-over {
             background-color: #eef2ff;
@@ -18,14 +19,14 @@
         }
         .student-item {
             cursor: grab;
-            transition: background-color 0.2s;
+            transition: all 0.2s;
         }
         .student-item:active {
             cursor: grabbing;
         }
         .student-item.dragging {
             opacity: 0.5;
-            background-color: #f3f4f6;
+            transform: scale(0.95);
         }
         .mbti-badge {
             font-size: 0.7rem;
@@ -33,25 +34,33 @@
             border-radius: 4px;
             font-weight: bold;
         }
+        /* 애니메이션 효과 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
     </style>
 </head>
-<body class="bg-indigo-50 min-h-screen py-10 px-4">
+<body class="bg-slate-50 min-h-screen py-10 px-4">
     <div class="max-w-6xl mx-auto">
         <!-- Header -->
         <div class="text-center mb-10">
             <h1 class="text-4xl font-extrabold text-indigo-900 mb-2">🧬 MBTI 팀 빌더</h1>
-            <p class="text-indigo-600 font-medium">성향을 고려한 분임 구성 만들기.</p>
+            <p class="text-slate-500 font-medium">우리 팀만의 특별한 시너지를 확인해보세요!</p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <!-- Left Side: Input Form (4 cols) -->
+            <!-- Left Side: Input Form -->
             <div class="lg:col-span-4 space-y-6">
-                <div class="bg-white p-6 rounded-2xl shadow-md">
-                    <h2 class="text-lg font-bold mb-4 flex items-center">
-                        <span class="mr-2">👥</span> 인원 설정
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h2 class="text-lg font-bold mb-4 flex items-center text-slate-800">
+                        <span class="mr-2">👥</span> 팀 설정
                     </h2>
-                    <label class="block text-sm text-gray-600 mb-2">한 팀당 목표 인원</label>
-                    <select id="team-size" class="w-full p-2 border border-gray-200 rounded-lg mb-4 focus:ring-2 focus:ring-indigo-400 outline-none">
+                    <label class="block text-sm text-slate-500 mb-2 font-medium">한 팀당 목표 인원</label>
+                    <select id="team-size" class="w-full p-2.5 border border-slate-200 rounded-xl mb-4 focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50 transition-all">
                         <option value="3">3명씩</option>
                         <option value="4" selected>4명씩</option>
                         <option value="5">5명씩</option>
@@ -59,63 +68,57 @@
                     </select>
                 </div>
 
-                <div class="bg-white p-6 rounded-2xl shadow-md">
-                    <h2 class="text-lg font-bold mb-4 flex items-center">
-                        <span class="mr-2">✍️</span> 학생 명단 입력
-                    </h2>
-                    <p class="text-xs text-gray-500 mb-2 font-medium">형식: 이름 MBTI (예: 김보건 ENFP)</p>
-                    <textarea id="student-list" class="w-full h-48 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none text-sm leading-relaxed" placeholder="이보건 INFJ&#10;박건강 ESTP&#10;최마음 ENFP&#10;강튼튼 ISTJ..."></textarea>
-                    <button onclick="createTeams()" class="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg active:scale-95">
-                        팀 구성하기
-                    </button>
-                </div>
-
-                <!-- MBTI Quick Guide -->
-                <div class="bg-indigo-900 text-white p-6 rounded-2xl shadow-md">
-                    <h2 class="text-lg font-bold mb-4 border-b border-indigo-700 pb-2">💡 MBTI 지표 이해</h2>
-                    <div class="space-y-4 text-xs">
-                        <div>
-                            <p class="font-bold text-indigo-300 mb-1">E/I (에너지 방향)</p>
-                            <p>활동적이고 사교적(E) vs 조용하고 신중함(I)</p>
-                        </div>
-                        <div>
-                            <p class="font-bold text-indigo-300 mb-1">S/N (정보 수집)</p>
-                            <p>사실과 경험 중시(S) vs 아이디어와 미래(N)</p>
-                        </div>
-                        <div>
-                            <p class="font-bold text-indigo-300 mb-1">T/F (의사 결정)</p>
-                            <p>논리와 원칙 중시(T) vs 관계와 감정 중시(F)</p>
-                        </div>
-                        <div>
-                            <p class="font-bold text-indigo-300 mb-1">J/P (생활 양식)</p>
-                            <p>계획적이고 철저함(J) vs 유연하고 즉흥적(P)</p>
-                        </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 text-slate-800">
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-lg font-bold flex items-center">
+                            <span class="mr-2">📁</span> 데이터 관리
+                        </h2>
+                        <button onclick="downloadSampleExcel()" class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg hover:bg-indigo-100 font-bold transition-colors">
+                            샘플 다운로드 ↓
+                        </button>
                     </div>
+                    <p class="text-xs text-slate-400 mb-4 font-medium">엑셀 파일을 불러오거나 직접 입력하세요.</p>
+                    <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelUpload(event)">
+                    <button onclick="document.getElementById('excel-file').click()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        엑셀 파일 불러오기
+                    </button>
+                    
+                    <textarea id="student-list" class="w-full h-40 p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm leading-relaxed bg-slate-50" placeholder="이름 MBTI (예: 김철수 ENFP)"></textarea>
+                    <button onclick="createTeams()" class="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg active:scale-95">
+                        매직 팀 빌딩 시작 ✨
+                    </button>
                 </div>
             </div>
 
-            <!-- Right Side: Results (8 cols) -->
+            <!-- Right Side: Results -->
             <div class="lg:col-span-8">
-                <div id="results-placeholder" class="bg-white border-2 border-dashed border-gray-300 rounded-3xl h-full min-h-[400px] flex flex-col items-center justify-center p-10 text-gray-400">
-                    <span class="text-5xl mb-4">🧪</span>
-                    <p>학생 명단을 입력하고 버튼을 눌러주세요.</p>
+                <div id="results-placeholder" class="bg-white border-2 border-dashed border-slate-300 rounded-3xl h-full min-h-[450px] flex flex-col items-center justify-center p-10 text-slate-400">
+                    <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
+                        <span class="text-4xl text-slate-300">⚡</span>
+                    </div>
+                    <p class="text-center font-medium">명단을 입력하면 MBTI 최적 조합 분석과<br>함께 팀이 구성됩니다.</p>
                 </div>
                 
                 <div id="team-container" class="grid grid-cols-1 md:grid-cols-2 gap-6 hidden">
-                    <!-- Teams will be injected here -->
+                    <!-- Teams generated here -->
                 </div>
 
-                <!-- Global Insight Guide -->
-                <div id="insight-guide" class="mt-8 bg-white p-6 rounded-2xl shadow-md hidden">
-                    <h2 class="text-xl font-black text-indigo-900 mb-4">⭐ 우리 반 협력 가이드</h2>
+                <!-- Guide -->
+                <div id="insight-guide" class="mt-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hidden animate-fadeIn">
+                    <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                        <span class="mr-2">💡</span> 팀 활동 팁
+                    </h2>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                        <div class="bg-blue-50 p-4 rounded-xl border-l-4 border-blue-400">
-                            <p class="text-blue-800 font-bold mb-1">TJ가 많은 팀:</p>
-                            <p class="text-blue-700">목표가 뚜렷하고 정해진 시간 내에 과제를 완수하는 능력이 뛰어납니다.</p>
+                        <div class="bg-indigo-50 p-4 rounded-xl">
+                            <p class="text-indigo-800 font-bold mb-1 italic">E와 I의 조화</p>
+                            <p class="text-indigo-700 text-xs">E는 분위기를 띄우고, I는 내용을 정리할 때 빛이 납니다.</p>
                         </div>
-                        <div class="bg-green-50 p-4 rounded-xl border-l-4 border-green-400">
-                            <p class="text-green-800 font-bold mb-1">NP가 많은 팀:</p>
-                            <p class="text-green-700">창의적인 발상이 넘쳐나며, 발표 자료가 개성 있고 흥미로울 가능성이 높습니다.</p>
+                        <div class="bg-amber-50 p-4 rounded-xl">
+                            <p class="text-amber-800 font-bold mb-1 italic">T와 F의 조화</p>
+                            <p class="text-amber-700 text-xs">T는 결과물의 완성도를, F는 팀원간의 유대감을 챙겨줍니다.</p>
                         </div>
                     </div>
                 </div>
@@ -126,165 +129,189 @@
     <script>
         let allTeams = [];
 
+        function downloadSampleExcel() {
+            const sampleData = [
+                ["이름", "MBTI"], ["김철수", "ENFP"], ["이영희", "ISTJ"], 
+                ["박민수", "INFJ"], ["최지우", "ESTP"], ["정다은", "INTJ"]
+            ];
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(sampleData);
+            XLSX.utils.book_append_sheet(wb, ws, "Sample");
+            XLSX.writeFile(wb, "MBTI_팀빌더_샘플.xlsx");
+        }
+
+        function handleExcelUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                let resultText = "";
+                jsonData.forEach((row, index) => {
+                    if (index === 0 && (String(row[0]).includes("이름") || String(row[1]).includes("MBTI"))) return;
+                    if (row[0] && row[1]) resultText += `${row[0]} ${row[1]}\n`;
+                });
+                document.getElementById('student-list').value = resultText.trim();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
         function createTeams() {
             const rawText = document.getElementById('student-list').value.trim();
             const targetSize = parseInt(document.getElementById('team-size').value);
-            
-            if (!rawText) {
-                alert("학생 명단을 입력해주세요!");
-                return;
-            }
+            if (!rawText) return;
 
-            const lines = rawText.split('\n');
-            let students = lines.map((line, idx) => {
+            let students = rawText.split('\n').map((line, idx) => {
                 const parts = line.trim().split(/\s+/);
                 if (parts.length < 2) return null;
                 const mbti = parts[1].toUpperCase();
                 return { 
-                    id: 'student-' + Date.now() + '-' + idx,
-                    name: parts[0], 
-                    mbti: mbti,
-                    isE: mbti.includes('E'),
-                    isI: mbti.includes('I'),
-                    isJ: mbti.includes('J'),
-                    isP: mbti.includes('P'),
-                    isT: mbti.includes('T'),
-                    isF: mbti.includes('F'),
-                    isN: mbti.includes('N'),
-                    isS: mbti.includes('S')
+                    id: 's-' + Date.now() + '-' + idx,
+                    name: parts[0], mbti: mbti,
+                    E: mbti.includes('E'), I: mbti.includes('I'),
+                    S: mbti.includes('S'), N: mbti.includes('N'),
+                    T: mbti.includes('T'), F: mbti.includes('F'),
+                    J: mbti.includes('J'), P: mbti.includes('P')
                 };
             }).filter(s => s !== null);
 
-            if (students.length < targetSize) {
-                alert("학생 수가 팀 목표 인원보다 적습니다.");
-                return;
-            }
-
             // Shuffle
-            for (let i = students.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [students[i], students[j]] = [students[j], students[i]];
-            }
+            students.sort(() => Math.random() - 0.5);
 
-            const numTeams = Math.ceil(students.length / targetSize);
+            const numTeams = Math.max(1, Math.ceil(students.length / targetSize));
             allTeams = Array.from({ length: numTeams }, () => []);
-            students.forEach((student, index) => {
-                allTeams[index % numTeams].push(student);
-            });
-
+            students.forEach((s, i) => allTeams[i % numTeams].push(s));
             renderTeams();
         }
 
-        function getTeamAnalysis(team) {
-            const eCount = team.filter(s => s.isE).length;
-            const iCount = team.filter(s => s.isI).length;
-            const jCount = team.filter(s => s.isJ).length;
-            const pCount = team.filter(s => s.isP).length;
-            const tCount = team.filter(s => s.isT).length;
-            const fCount = team.filter(s => s.isF).length;
+        function getDetailedSynergy(team) {
+            if (team.length === 0) return { title: "새로운 시작", desc: "학생을 추가해 팀을 완성해주세요!" };
+            
+            const count = (attr) => team.filter(s => s[attr]).length;
+            const len = team.length;
+            
+            // 비율 계산
+            const eR = count('E')/len, iR = count('I')/len;
+            const sR = count('S')/len, nR = count('N')/len;
+            const tR = count('T')/len, fR = count('F')/len;
+            const jR = count('J')/len, pR = count('P')/len;
 
-            let traits = [];
-            let expectation = "";
+            // 타이틀 조합
+            let title = "";
+            if (eR >= 0.7) title = "⚡ 에너자이저 파티";
+            else if (iR >= 0.7) title = "🧘 몰입형 전략가들";
+            else if (fR >= 0.7) title = "🤝 환상의 소통러들";
+            else if (tR >= 0.7) title = "📊 팩트 폭격기군단";
+            else if (nR >= 0.7) title = "🚀 상상력 연구소";
+            else if (sR >= 0.7) title = "🛠️ 실전 전문가팀";
+            else title = "🌈 황금 밸런스팀";
 
-            if (team.length === 0) return { title: "💨 비어있는 팀", desc: "학생을 이곳으로 옮겨보세요!" };
+            // 시너지 분석 문구 (다양한 조건문)
+            let desc = "";
+            if (nR > 0.5 && pR > 0.5) {
+                desc = "기존 틀을 깨는 혁신적인 아이디어가 쏟아질 거예요. 창의적인 발표가 기대됩니다!";
+            } else if (sR > 0.5 && jR > 0.5) {
+                desc = "현실적이고 구체적인 계획으로 오차 없이 과제를 완수할 팀입니다. 가장 안정적이죠.";
+            } else if (tR > 0.5 && jR > 0.5) {
+                desc = "냉철한 분석력과 완벽한 마무리가 돋보이겠네요. 결과물의 퀄리티가 남다를 것입니다.";
+            } else if (fR > 0.5 && eR > 0.5) {
+                desc = "서로 응원하며 활기차게 협업하는 모습이 그려집니다. 팀 분위기가 가장 좋을 거예요.";
+            } else if (iR > 0.5 && nR > 0.5) {
+                desc = "조용하지만 깊이 있는 통찰력이 돋보이는 팀입니다. 누구도 생각지 못한 관점을 제시하겠네요.";
+            } else if (eR > 0.4 && iR > 0.4 && tR > 0.4 && fR > 0.4) {
+                desc = "다양한 성향이 모여 시너지가 엄청나요! 서로의 부족한 점을 가장 완벽하게 채워줄 수 있습니다.";
+            } else if (jR > 0.5) {
+                desc = "계획 수립부터 실행까지 빈틈이 없네요. 시간 관리에 가장 철저한 팀이 될 것입니다.";
+            } else if (pR > 0.5) {
+                desc = "순발력이 뛰어난 팀입니다. 상황에 유연하게 대처하며 재미있는 결과물을 만들어낼 거예요.";
+            } else {
+                desc = "팀원 개개인의 개성이 뚜렷하네요. 서로의 강점을 발견하며 멋진 협력을 만들어보세요!";
+            }
 
-            if (eCount > iCount) traits.push("🔥 활기찬");
-            else if (iCount > eCount) traits.push("🧘 차분한");
-            else traits.push("⚖️ 균형 잡힌");
-
-            if (fCount > tCount) traits.push("❤️ 공감형");
-            else if (tCount > fCount) traits.push("🧐 논리형");
-
-            if (jCount > pCount) expectation = "마감 준수와 철저한 계획이 기대됩니다.";
-            else if (pCount > jCount) expectation = "유연하고 창의적인 아이디어가 기대됩니다.";
-            else expectation = "안정적인 팀워크가 기대됩니다.";
-
-            return {
-                title: traits.join(" "),
-                desc: expectation
-            };
+            return { title, desc };
         }
 
         function renderTeams() {
             const container = document.getElementById('team-container');
             const placeholder = document.getElementById('results-placeholder');
-            const insightGuide = document.getElementById('insight-guide');
+            const guide = document.getElementById('insight-guide');
             
             placeholder.classList.add('hidden');
             container.classList.remove('hidden');
-            insightGuide.classList.remove('hidden');
+            guide.classList.remove('hidden');
             container.innerHTML = '';
 
-            allTeams.forEach((team, teamIndex) => {
-                const analysis = getTeamAnalysis(team);
+            allTeams.forEach((team, tIdx) => {
+                const synergy = getDetailedSynergy(team);
                 const teamDiv = document.createElement('div');
-                teamDiv.className = 'bg-white p-6 rounded-2xl shadow-lg team-card border-t-8 border-indigo-600 flex flex-col h-full';
-                teamDiv.dataset.teamIndex = teamIndex;
+                teamDiv.className = 'bg-white p-6 rounded-2xl shadow-sm border border-slate-200 team-card flex flex-col animate-fadeIn';
+                teamDiv.dataset.tIdx = tIdx;
 
-                // Drag & Drop Events for Team Card
-                teamDiv.ondragover = (e) => {
-                    e.preventDefault();
-                    teamDiv.classList.add('drag-over');
-                };
+                // Drag Events
+                teamDiv.ondragover = (e) => { e.preventDefault(); teamDiv.classList.add('drag-over'); };
                 teamDiv.ondragleave = () => teamDiv.classList.remove('drag-over');
                 teamDiv.ondrop = (e) => {
                     e.preventDefault();
                     teamDiv.classList.remove('drag-over');
-                    const studentId = e.dataTransfer.getData('studentId');
-                    const fromTeamIndex = parseInt(e.dataTransfer.getData('fromTeamIndex'));
-                    const toTeamIndex = teamIndex;
-
-                    if (fromTeamIndex === toTeamIndex) return;
-
-                    // Move student
-                    const studentIdx = allTeams[fromTeamIndex].findIndex(s => s.id === studentId);
-                    const [student] = allTeams[fromTeamIndex].splice(studentIdx, 1);
-                    allTeams[toTeamIndex].push(student);
-
+                    const sId = e.dataTransfer.getData('sId');
+                    const fromTIdx = parseInt(e.dataTransfer.getData('fromTIdx'));
+                    const toTIdx = tIdx;
+                    if (fromTIdx === toTIdx) return;
+                    const sIdx = allTeams[fromTIdx].findIndex(s => s.id === sId);
+                    const [sObj] = allTeams[fromTIdx].splice(sIdx, 1);
+                    allTeams[toTIdx].push(sObj);
                     renderTeams();
                 };
                 
-                let studentListHtml = team.map(s => `
-                    <div class="student-item flex justify-between items-center py-2 px-3 mb-1 border border-gray-50 rounded-lg hover:bg-indigo-50 bg-white shadow-sm" 
-                         draggable="true" 
-                         data-student-id="${s.id}"
-                         data-team-index="${teamIndex}">
-                        <span class="font-bold text-gray-800 pointer-events-none">${s.name}</span>
-                        <span class="mbti-badge bg-gray-100 text-gray-600 pointer-events-none">${s.mbti}</span>
+                let studentsHtml = team.map(s => `
+                    <div class="student-item flex justify-between items-center py-2.5 px-3.5 mb-2 border border-slate-100 rounded-xl bg-white shadow-sm hover:border-indigo-300 hover:shadow-md" 
+                         draggable="true" data-s-id="${s.id}" data-t-idx="${tIdx}">
+                        <span class="font-bold text-slate-700 text-sm">${s.name}</span>
+                        <span class="mbti-badge ${getMbtiColor(s.mbti)}">${s.mbti}</span>
                     </div>
                 `).join('');
 
                 teamDiv.innerHTML = `
-                    <div class="flex justify-between items-start mb-4 pointer-events-none">
+                    <div class="flex justify-between items-start mb-5">
                         <div>
-                            <h3 class="font-black text-indigo-900 text-xl italic leading-none mb-1">TEAM ${teamIndex + 1}</h3>
-                            <p class="text-[10px] font-bold text-indigo-400 tracking-wider uppercase">${analysis.title}</p>
+                            <h3 class="font-black text-slate-900 text-xl tracking-tight">TEAM ${tIdx + 1}</h3>
+                            <p class="text-[11px] font-bold text-indigo-500 mt-1">${synergy.title}</p>
                         </div>
-                        <span class="bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md text-xs font-bold">${team.length}명</span>
+                        <span class="bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full text-[10px] font-bold">${team.length}명</span>
                     </div>
-                    
-                    <div class="flex-grow space-y-1 mb-6 min-h-[50px] student-list-container">
-                        ${team.length === 0 ? '<p class="text-xs text-center text-gray-300 py-4 italic">여기로 드래그하세요</p>' : studentListHtml}
+                    <div class="flex-grow min-h-[60px]">
+                        ${team.length === 0 ? '<p class="text-xs text-center text-slate-300 py-8 italic border-2 border-dashed border-slate-50 rounded-xl">여기로 드래그</p>' : studentsHtml}
                     </div>
-
-                    <div class="bg-indigo-50 p-3 rounded-xl pointer-events-none">
-                        <p class="text-[10px] font-bold text-indigo-800 mb-1">팀 시너지 분석 💡</p>
-                        <p class="text-[11px] text-indigo-700 leading-relaxed">${analysis.desc}</p>
+                    <div class="mt-4 pt-4 border-t border-slate-50">
+                        <div class="flex items-center gap-1.5 mb-1.5">
+                            <span class="text-xs">✨</span>
+                            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Our Synergy</span>
+                        </div>
+                        <p class="text-[12px] text-slate-600 leading-relaxed font-medium">${synergy.desc}</p>
                     </div>
                 `;
 
-                // Add drag start events to students
                 teamDiv.querySelectorAll('.student-item').forEach(item => {
                     item.ondragstart = (e) => {
                         item.classList.add('dragging');
-                        e.dataTransfer.setData('studentId', item.dataset.studentId);
-                        e.dataTransfer.setData('fromTeamIndex', item.dataset.teamIndex);
+                        e.dataTransfer.setData('sId', item.dataset.sId);
+                        e.dataTransfer.setData('fromTIdx', item.dataset.tIdx);
                     };
                     item.ondragend = () => item.classList.remove('dragging');
                 });
-
                 container.appendChild(teamDiv);
             });
+        }
+
+        function getMbtiColor(mbti) {
+            if (mbti.includes('NF')) return 'bg-green-50 text-green-600';
+            if (mbti.includes('NT')) return 'bg-purple-50 text-purple-600';
+            if (mbti.includes('SJ')) return 'bg-blue-50 text-blue-600';
+            if (mbti.includes('SP')) return 'bg-amber-50 text-amber-600';
+            return 'bg-slate-50 text-slate-600';
         }
     </script>
 </body>
